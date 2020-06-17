@@ -1,0 +1,23 @@
+# short-description: Create SD card image with a boot partition (1GB)
+# long-description: Creates a partitioned SD card image (1GB)
+#
+# Based on meta-st-stm32mp/wic/sdcard-stm32mp157c-dk2-trusted-1GB.wks.in
+#
+#  - ----- --------- ----------------------...---
+# | | TFA | u-boot  |     bootfs   |   rootfs   |
+#  - ----- --------- -------------- -------...---
+# ^ ^     ^         ^              ^
+# | |     |         |              |
+# 0 17kB 529kB     4MB           66.5MB
+#
+# Warning: the first stage of boot (here fsbl1, fsbl2, ssbl) MUST be on GPT partition to be detected.
+#
+
+part fsbl1 --source gptcopy --sourceparams="file=tf-a-stm32mp157c-dk2-trusted.stm32" --ondisk mmcblk --label fsbl1 --part-type 0x8301 --fixed-size 256K --align 17
+part fsbl2 --source gptcopy --sourceparams="file=tf-a-stm32mp157c-dk2-trusted.stm32" --ondisk mmcblk --label fsbl2 --part-type 0x8301 --fixed-size 256K
+part ssbl  --source gptcopy --sourceparams="file=u-boot-stm32mp157c-dk2-trusted.stm32" --ondisk mmcblk --label ssbl --part-type 0x8301 --fixed-size 2048K
+
+part bootfs --source rawcopy --sourceparams="file=st-image-bootfs-${DISTRO}-${MACHINE}.ext4" --ondisk mmcblk --fstype=ext4 --label bootfs --active --fixed-size 64M --align 1024
+part / --source rootfs --ondisk mmcblk --fstype=ext4 --label rootfs --fixed-size ${STM32MP_ROOTFS_FIXED_SIZE} --align 1024
+
+bootloader --ptable gpt
